@@ -9,7 +9,7 @@ import litellm
 from domain.document_d import DocumentD
 from domain.statement_d import StatementMetaDataD
 from extractor.base_extractor import BaseExtractor
-from utils.converters import doc_to_message_parts
+from utils.converters import to_responses_input_parts
 
 STATEMENT_SYSTEM_PROMPT: str = (
     "You are a precise financial document parser. "
@@ -48,7 +48,7 @@ class StatementMetadataExtractor(BaseExtractor[DocumentD, StatementMetaDataD]):
         ]
 
         # Attach the document(s) as a base64 data URL (for multimodal models) first.
-        user_parts.extend(doc_to_message_parts(element))
+        user_parts.extend(to_responses_input_parts(element))
 
         messages.append({"role": "user", "content": user_parts})
 
@@ -69,6 +69,7 @@ class StatementMetadataExtractor(BaseExtractor[DocumentD, StatementMetaDataD]):
         )
 
         raw = response["choices"][0]["message"]["content"]
+        breakpoint()
         try:
             data = json.loads(raw)
         except json.JSONDecodeError as e:
@@ -76,7 +77,6 @@ class StatementMetadataExtractor(BaseExtractor[DocumentD, StatementMetaDataD]):
 
         # Ensure document_id matches the input document
         data["document_id"] = doc.document_id
-
         try:
             return StatementMetaDataD.from_dict(data)
         except Exception as e:

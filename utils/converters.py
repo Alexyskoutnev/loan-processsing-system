@@ -1,7 +1,11 @@
-import base64
-from typing import Any
+from __future__ import annotations
 
-from domain.document_d import DocumentD
+import base64
+from typing import Any, Protocol
+
+
+class HasFileBinary(Protocol):
+    file_binary: bytes
 
 
 def b64encode(b: bytes) -> str:
@@ -15,24 +19,44 @@ def b64decode(s: str) -> bytes:
 def determine_mime_type(b: bytes) -> str:
     if b.startswith(b"%PDF"):
         return "application/pdf"
-    elif b.startswith((b"\x89PNG", b"PNG")):
+    if b.startswith((b"\x89PNG", b"PNG")):
         return "image/png"
-    elif b.startswith((b"\xff\xd8", b"JPEG")):
+    if b.startswith((b"\xff\xd8", b"JPEG")):
         return "image/jpeg"
-    else:
-        raise ValueError("Unsupported binary format for data URL")
+    raise ValueError("Unsupported binary format (expect PDF/PNG/JPEG)")
 
 
-def to_data_url(b: bytes) -> str:
-    # This function creates a data URL for the given binary content.
-    # We should determine if its pdf or image/png or image/jpeg
-    mime = determine_mime_type(b)
-    return f"data:{mime};base64,{b64encode(b)}"
+def to_responses_input_parts(
+    doc: HasFileBinary,
+    *,
+    pdf_filename: str = "document.pdf",
+) -> list[dict[str, Any]]:
+    """
+    - For images: returns an `input_image` part with inline bytes.
+    - For PDFs: returns a `file` part with a base64 data URL.
+    """
+    mime = determine_mime_type(doc.file_binary)
 
+    if mime in ("image/png", "image/jpeg"):
+        # Inline image bytes (Responses API)
+        return [
+            {
+                "type": "input_image",
+                "image": {
+                    "data": b64encode(doc.file_binary),
+                    "mime_type": mime,
+                },
+            }
+        ]
+    if mime == "application/pdf":
+        part: dict[str, Any] = {
+            "type": "file",
+            "file": {
+                "filename": pdf_filename if pdf_filename else "document.pdf",
+                "file_data": f"data:application/pdf;base64,{b64encode(doc.file_binary)}",
+            },
+        }
+        return [part]
 
-def doc_to_message_parts(doc: DocumentD) -> list[dict[str, Any]]:
-    """Convert DocumentD binary format to image/pdf data URL for LLM message."""
-    parts: list[dict[str, Any]] = []
-    data_url = to_data_url(doc.file_binary)
-    parts.append({"type": "image_url", "image_url": {"url": data_url}})
-    return parts
+    # Shouldn't reach here due to earlier check
+    raise ValueError(f"Unsupported MIME type: {mime}")

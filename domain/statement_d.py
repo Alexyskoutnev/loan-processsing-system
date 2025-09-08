@@ -45,6 +45,30 @@ class TransactionD:
         "additionalProperties": False,
     }
 
+    def __str__(self) -> str:
+        amount_str = f"${self.transaction_amount:,.2f}"
+        if self.transaction_type == TransactionType.DEBIT:
+            amount_str = f"-{amount_str}"
+        else:
+            amount_str = f"+{amount_str}"
+
+        # Truncate description if too long
+        desc = self.transaction_description
+        if len(desc) > 40:
+            desc = desc[:37] + "..."
+
+        return f"{self.transaction_date} | {amount_str} | {desc}"
+
+    def __repr__(self) -> str:
+        return (
+            f"TransactionD(document_id={self.document_id!r}, "
+            f"transaction_date={self.transaction_date!r}, "
+            f"transaction_amount={self.transaction_amount!r}, "
+            f"transaction_description={self.transaction_description!r}, "
+            f"transaction_type={self.transaction_type!r}, "
+            f"transaction_id={self.transaction_id!r})"
+        )
+
     @classmethod
     def json_schema(cls) -> dict[str, Any]:
         return cls.JSON_SCHEMA
@@ -119,6 +143,32 @@ class StatementMetaDataD:
         ],
         "additionalProperties": False,
     }
+
+    def __str__(self) -> str:
+        masked_account = (
+            f"***{self.account_number[-4:]}" if len(self.account_number) >= 4 else "***"
+        )
+
+        opening = f"${self.statement_opening_balance:,.2f}"
+        closing = f"${self.statement_closing_balance:,.2f}"
+
+        return (
+            f"{self.bank_name} Statement ({self.account_holder_name}, "
+            f"Account {masked_account}) {self.statement_start_date} to "
+            f"{self.statement_end_date}: {opening} → {closing}"
+        )
+
+    def __repr__(self) -> str:
+        return (
+            f"StatementMetaDataD(document_id={self.document_id!r}, "
+            f"bank_name={self.bank_name!r}, "
+            f"account_holder_name={self.account_holder_name!r}, "
+            f"account_number={self.account_number!r}, "
+            f"statement_start_date={self.statement_start_date!r}, "
+            f"statement_end_date={self.statement_end_date!r}, "
+            f"statement_opening_balance={self.statement_opening_balance!r}, "
+            f"statement_closing_balance={self.statement_closing_balance!r})"
+        )
 
     @classmethod
     def json_schema(cls) -> dict[str, Any]:

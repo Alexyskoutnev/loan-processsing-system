@@ -7,7 +7,6 @@ from typing import Generic, TypeVar
 
 T = TypeVar("T")
 R = TypeVar("R")
-logger = logging.getLogger(__name__)
 
 
 class BaseExtractor(ABC, Generic[T, R]):
@@ -21,13 +20,13 @@ class BaseExtractor(ABC, Generic[T, R]):
         start = time.perf_counter()
         try:
             result = self._process(element)
-            logger.info(
+            logging.info(
                 "processed_element",
                 extra={"result": repr(result), "elapsed_s": time.perf_counter() - start},
             )
             return result
         except Exception:
-            logger.exception("extractor_failed", extra={"element": repr(element)})
+            logging.exception("extractor_failed", extra={"element": repr(element)})
             # re-raise the exception to be handled by the caller
             raise
 
