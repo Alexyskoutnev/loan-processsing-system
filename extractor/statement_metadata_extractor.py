@@ -1,17 +1,15 @@
 from __future__ import annotations
 
 import json
-import logging  
-from typing import Any, ClassVar
-
-from extractor.base_extractor import BaseExtractor
-from domain.statement_d import StatementMetaDataD
-from utils.converters import doc_to_message_parts
-from domain.document_d import DocumentD 
-
+import logging
+from typing import Any, ClassVar, cast
 
 import litellm
 
+from domain.document_d import DocumentD
+from domain.statement_d import StatementMetaDataD
+from extractor.base_extractor import BaseExtractor
+from utils.converters import doc_to_message_parts
 
 STATEMENT_SYSTEM_PROMPT: str = (
     "You are a precise financial document parser. "
@@ -22,17 +20,10 @@ STATEMENT_SYSTEM_PROMPT: str = (
 
 
 class StatementMetadataExtractor(BaseExtractor[DocumentD, StatementMetaDataD]):
-
     # TODO: I want to make this a enum (easier to tab/manage) instead of a string
     llm_model: ClassVar[str] = "openai/gpt-5"
 
-    def _process(self, 
-                 doc: DocumentD) -> StatementMetaDataD:
-        if not doc:
-            logging.warning("No document provided to StatementMetadataExtractor")
-            raise ValueError("No documents provided to StatementMetadataExtractor")
-
-
+    def _process(self, element: DocumentD) -> StatementMetaDataD:
         messages: list[dict[str, Any]] = [
             {"role": "system", "content": STATEMENT_SYSTEM_PROMPT},
         ]
@@ -57,22 +48,24 @@ class StatementMetadataExtractor(BaseExtractor[DocumentD, StatementMetaDataD]):
         ]
 
         # Attach the document(s) as a base64 data URL (for multimodal models) first.
-        user_parts.extend(doc_to_message_parts(doc))
+        user_parts.extend(doc_to_message_parts(element))
 
-        messages.append({"role": "user", 
-                         "content": user_parts})
+        messages.append({"role": "user", "content": user_parts})
 
-        response = litellm.completion(
-            model=self.llm_model,
-            messages=messages,
-            response_format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "StatementMetaDataD",
-                    "schema": StatementMetaDataD.json_schema(),
-                    "strict": True,
+        response = cast(
+            dict[str, Any],
+            litellm.completion(  # type: ignore
+                model=self.llm_model,
+                messages=messages,
+                response_format={
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "StatementMetaDataD",
+                        "schema": StatementMetaDataD.json_schema(),
+                        "strict": True,
+                    },
                 },
-            },
+            ),
         )
 
         raw = response["choices"][0]["message"]["content"]
@@ -80,7 +73,7 @@ class StatementMetadataExtractor(BaseExtractor[DocumentD, StatementMetaDataD]):
             data = json.loads(raw)
         except json.JSONDecodeError as e:
             raise ValueError(f"Model did not return valid JSON: {e}\nRaw: {raw!r}") from e
-        
+
         # Ensure document_id matches the input document
         data["document_id"] = doc.document_id
 
@@ -88,7 +81,7 @@ class StatementMetadataExtractor(BaseExtractor[DocumentD, StatementMetaDataD]):
             return StatementMetaDataD.from_dict(data)
         except Exception as e:
             raise ValueError(f"Failed to construct StatementMetaDataD from data: {data}") from e
-        
+
 
 if __name__ == "__main__":
     import datetime as dt

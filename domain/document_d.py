@@ -1,16 +1,19 @@
 from __future__ import annotations
-import datetime as dt
-from dataclasses import dataclass
-import hashlib
 
-from utils.converters import _b64encode, _b64decode
+from dataclasses import dataclass
+import datetime as dt
+import hashlib
+from typing import Any
+
+from utils.converters import b64decode, b64encode
+
 
 # TODO: Decide whether to make this immutable or not. For now we need to set document_id after creation
 @dataclass(frozen=False)
 class DocumentD:
     file_binary: bytes
-    as_of_date: dt.date # This is uploaded date (can be determined deterministically), not the statement date (statement date will require parsing the document, idk if that is needed at this stage)
-    document_id: str | None = None   # computed if None, must be set otherwise
+    as_of_date: dt.date  # This is uploaded date (can be determined deterministically), not the statement date (statement date will require parsing the document, idk if that is needed at this stage)
+    document_id: str | None = None  # computed if None, must be set otherwise
 
     def __post_init__(self):
         if self.document_id is None:
@@ -24,17 +27,17 @@ class DocumentD:
         h.update(self.file_binary)
         return h.hexdigest()
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "document_id": self.document_id,
-            "file_binary_b64": _b64encode(self.file_binary),
+            "file_binary_b64": b64encode(self.file_binary),
             "as_of_date": self.as_of_date.isoformat(),
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> DocumentD:
+    def from_dict(cls, data: dict[str, Any]) -> DocumentD:
         return cls(
-            file_binary=_b64decode(data["file_binary_b64"]),
+            file_binary=b64decode(data["file_binary_b64"]),
             as_of_date=dt.date.fromisoformat(data["as_of_date"]),
             document_id=data["document_id"],
         )

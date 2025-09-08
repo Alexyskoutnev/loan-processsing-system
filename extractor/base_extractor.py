@@ -1,24 +1,30 @@
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import TypeVar, Generic
-import logging, time
+import logging
+import time
+from typing import Generic, TypeVar
 
 T = TypeVar("T")
 R = TypeVar("R")
 logger = logging.getLogger(__name__)
 
+
 class BaseExtractor(ABC, Generic[T, R]):
-
     @abstractmethod
-    def _process(self, 
-                 element: T) -> R: ...
+    def _process(self, element: T) -> R: ...
 
-    def process(self, 
-                element: T,) -> R:
+    def process(
+        self,
+        element: T,
+    ) -> R:
         start = time.perf_counter()
         try:
             result = self._process(element)
-            logger.info("processed_element", extra={"result": repr(result), "elapsed_s": time.perf_counter()-start})
+            logger.info(
+                "processed_element",
+                extra={"result": repr(result), "elapsed_s": time.perf_counter() - start},
+            )
             return result
         except Exception:
             logger.exception("extractor_failed", extra={"element": repr(element)})

@@ -1,23 +1,24 @@
 from __future__ import annotations
-import datetime as dt
-import uuid
-from enum import Enum
+
 from dataclasses import dataclass
-from typing import Any, ClassVar
+import datetime as dt
 from decimal import Decimal
+from enum import Enum
+from typing import Any, ClassVar
+import uuid
 
 
 class TransactionType(Enum):
-    DEBIT = "debit"    # outflow
+    DEBIT = "debit"  # outflow
     CREDIT = "credit"  # inflow
 
 
 # TODO: Decide whether to make this immutable or not. For now we need to set transaction_id after creation
 @dataclass(frozen=False)
 class TransactionD:
-    document_id: str                  # link to source document
+    document_id: str  # link to source document
     transaction_date: dt.date
-    transaction_amount: Decimal       # Decimal for money
+    transaction_amount: Decimal  # Decimal for money
     transaction_description: str
     transaction_type: TransactionType
     transaction_id: str | None = None  # if None, auto-UUID in __post_init__
@@ -63,9 +64,9 @@ class TransactionD:
         return {
             "document_id": self.document_id,
             "transaction_date": self.transaction_date.isoformat(),  # YYYY-MM-DD
-            "transaction_amount": str(self.transaction_amount),     # JSON-safe
+            "transaction_amount": str(self.transaction_amount),  # JSON-safe
             "transaction_description": self.transaction_description,
-            "transaction_type": self.transaction_type.value,        # "debit"/"credit"
+            "transaction_type": self.transaction_type.value,  # "debit"/"credit"
             "transaction_id": self.transaction_id,
         }
 
@@ -129,12 +130,12 @@ class StatementMetaDataD:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "document_id": self.document_id,                          # included for round-trip
+            "document_id": self.document_id,  # included for round-trip
             "bank_name": self.bank_name,
             "account_holder_name": self.account_holder_name,
             "account_number": self.account_number,
             "statement_start_date": self.statement_start_date.isoformat(),  # YYYY-MM-DD
-            "statement_end_date": self.statement_end_date.isoformat(),      # YYYY-MM-DD
+            "statement_end_date": self.statement_end_date.isoformat(),  # YYYY-MM-DD
             "statement_opening_balance": str(self.statement_opening_balance),
             "statement_closing_balance": str(self.statement_closing_balance),
         }

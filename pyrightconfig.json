@@ -1,0 +1,15 @@
+{
+  "typeCheckingMode": "strict",
+  "pythonVersion": "3.11",
+  "venvPath": ".",
+  "venv": ".venv",
+
+  "include": ["domain", "extractor", "pipeline", "utils", "llm_handler"],
+  "exclude": [".venv", ".git", "build", "dist", "data", "node_modules"],
+
+  "reportMissingImports": "none",
+  "reportUnreachable": "warning",
+  "reportUnnecessaryTypeIgnoreComment": "warning",
+  "reportUnnecessaryCast": "warning",
+  "useLibraryCodeForTypes": true
+}

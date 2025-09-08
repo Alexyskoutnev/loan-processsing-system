@@ -1,0 +1,31 @@
+default_stages: [pre-commit]
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+
+  - repo: local
+    hooks:
+      - id: ruff-format
+        name: ruff-format
+        entry: uv run ruff format
+        language: system
+        types_or: [python]
+        pass_filenames: true
+
+      - id: ruff-lint
+        name: ruff-lint
+        entry: uv run ruff check
+        language: system
+        types_or: [python]
+        args: ["--fix"]
+        pass_filenames: true
+
+      - id: pyright
+        name: pyright
+        entry: uv run pyright
+        language: system
+        types_or: [python]
+        pass_filenames: true
