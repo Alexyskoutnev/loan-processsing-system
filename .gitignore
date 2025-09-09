@@ -65,3 +65,7 @@ cython_debug/
 # OS junk
 .DS_Store
 Thumbs.db
+
+# claude json
+.settings.local.json
+.claude/**

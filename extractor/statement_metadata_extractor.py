@@ -6,7 +6,7 @@ from typing import Any, ClassVar, cast
 
 import litellm
 
-from domain.document_d import DocumentD
+from domain.document_d import DocumentD, RawDocumentD
 from domain.statement_d import StatementMetaDataD
 from extractor.base_extractor import BaseExtractor
 from utils.converters import to_responses_input_parts
@@ -19,11 +19,11 @@ STATEMENT_SYSTEM_PROMPT: str = (
 )
 
 
-class StatementMetadataExtractor(BaseExtractor[DocumentD, StatementMetaDataD]):
+class StatementMetadataExtractor(BaseExtractor[RawDocumentD, StatementMetaDataD]):
     # TODO: I want to make this a enum (easier to tab/manage) instead of a string
     llm_model: ClassVar[str] = "openai/gpt-5"
 
-    def _process(self, element: DocumentD) -> StatementMetaDataD:
+    def _process(self, element: RawDocumentD) -> StatementMetaDataD:
         messages: list[dict[str, Any]] = [
             {"role": "system", "content": STATEMENT_SYSTEM_PROMPT},
         ]
@@ -33,7 +33,7 @@ class StatementMetadataExtractor(BaseExtractor[DocumentD, StatementMetaDataD]):
                 "type": "text",
                 "text": (
                     "Task: Extract bank statement metadata for the statement represented by the attached content.\n"
-                    f"Primary document_id: {doc.document_id}\n"
+                    f"Primary document_id: {element.document_id}\n"
                     "Fields to extract:\n"
                     " - document_id (should be the primary document_id above)\n"
                     " - bank_name\n"
@@ -69,14 +69,13 @@ class StatementMetadataExtractor(BaseExtractor[DocumentD, StatementMetaDataD]):
         )
 
         raw = response["choices"][0]["message"]["content"]
-        breakpoint()
         try:
             data = json.loads(raw)
         except json.JSONDecodeError as e:
             raise ValueError(f"Model did not return valid JSON: {e}\nRaw: {raw!r}") from e
 
         # Ensure document_id matches the input document
-        data["document_id"] = doc.document_id
+        data["document_id"] = element.document_id
         try:
             return StatementMetaDataD.from_dict(data)
         except Exception as e:

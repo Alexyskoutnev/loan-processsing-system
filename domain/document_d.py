@@ -8,6 +8,7 @@ from typing import Any
 
 from pypdf import PdfReader, PdfWriter
 
+from domain.statement_d import StatementMetaDataD, TransactionD
 from utils.converters import b64decode, b64encode, determine_mime_type
 
 
@@ -55,7 +56,7 @@ class PageD:
 
 
 @dataclass(frozen=False)
-class DocumentD:
+class RawDocumentD:
     file_binary: bytes
     as_of_date: dt.date
     document_id: str | None = None
@@ -150,7 +151,7 @@ class DocumentD:
         return data
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> DocumentD:
+    def from_dict(cls, data: dict[str, Any]) -> RawDocumentD:
         doc = cls(
             file_binary=b64decode(data["file_binary_b64"]),
             as_of_date=dt.date.fromisoformat(data["as_of_date"]),
@@ -159,3 +160,52 @@ class DocumentD:
         if "pages" in data:
             doc.pages = [PageD.from_dict(p) for p in data["pages"]]
         return doc
+
+
+class DocumentD(RawDocumentD):
+    # After processing fields we get metadata and transactions
+    metadata: StatementMetaDataD
+    transactions: list[TransactionD]
+
+    def __repr__(self) -> str:
+        return (
+            f"DocumentD(file_binary=<{len(self.file_binary)} bytes>, "
+            f"as_of_date={self.as_of_date!r}, "
+            f"document_id={self.document_id!r}, "
+            f"pages=[{len(self.pages)} pages], "
+            f"metadata={self.metadata!r}, "
+            f"transactions=[{len(self.transactions) if self.transactions else 0} transactions])"
+        )
+
+    def __str__(self):
+        return super().__str__()
+
+    def to_dict(
+        self,
+        *,
+        include_pages: bool = False,
+        include_page_text: bool = False,
+        include_metadata: bool = True,
+        include_transactions: bool = True,
+    ) -> dict[str, Any]:
+        data = super().to_dict(include_pages=include_pages, include_page_text=include_page_text)
+        if include_metadata and self.metadata:
+            data["metadata"] = self.metadata.to_dict()
+        if include_transactions and self.transactions:
+            data["transactions"] = [t.to_dict() for t in self.transactions]
+        return data
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> DocumentD:
+        doc = super().from_dict(data)
+        doc_d = cls(
+            file_binary=doc.file_binary,
+            as_of_date=doc.as_of_date,
+            document_id=doc.document_id,
+        )
+        doc_d.pages = doc.pages
+        if "metadata" in data:
+            doc_d.metadata = StatementMetaDataD.from_dict(data["metadata"])
+        if "transactions" in data:
+            doc_d.transactions = [TransactionD.from_dict(t) for t in data["transactions"]]
+        return doc_d
