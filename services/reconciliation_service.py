@@ -41,9 +41,8 @@ class StatementReconciliationService:
 
         is_balanced = difference <= cls.TOLERANCE
 
-        # Log details for debugging
         if not is_balanced:
-            logging.debug(
+            logging.error(
                 f"Reconciliation mismatch: "
                 f"Opening {document.metadata.statement_opening_balance} + "
                 f"Net {net_change} = {expected_closing} "

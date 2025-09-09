@@ -69,3 +69,8 @@ Thumbs.db
 # claude json
 .settings.local.json
 .claude/**
+
+
+# ignore bin/data artifacts
+bin/
+_data/

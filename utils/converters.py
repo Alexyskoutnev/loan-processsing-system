@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import base64
-from typing import Any, Protocol
+from typing import Any, Protocol, runtime_checkable
 
 
+@runtime_checkable
 class HasFileBinary(Protocol):
-    file_binary: bytes
+    @property
+    def file_binary(self) -> bytes: ...
 
 
 def b64encode(b: bytes) -> str:

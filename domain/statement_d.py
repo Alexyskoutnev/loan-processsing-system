@@ -45,18 +45,20 @@ class TransactionD:
     }
 
     def __str__(self) -> str:
-        amount_str = f"${self.transaction_amount:,.2f}"
+        date_str = self.transaction_date.strftime("%Y-%m-%d")
+        amount_str = f"{self.transaction_amount:,.2f}"
+
         if self.transaction_type == TransactionType.DEBIT:
-            amount_str = f"-{amount_str}"
+            amount_str = f"-${amount_str}"
         else:
-            amount_str = f"+{amount_str}"
+            amount_str = f"+${amount_str}"
 
-        # Truncate description if too long
-        desc = self.transaction_description
-        if len(desc) > 40:
-            desc = desc[:37] + "..."
-
-        return f"{self.transaction_date} | {amount_str} | {desc}"
+        return (
+            f"{date_str:<12} | "
+            f"{amount_str:>12} | "
+            f"{self.transaction_type.value:<6} | "
+            f"{self.transaction_description}"
+        )
 
     def __repr__(self) -> str:
         return (
@@ -117,6 +119,36 @@ class TransactionD:
             transaction_description=data["transaction_description"],
             transaction_type=TransactionType(data["transaction_type"]),
         )
+
+    @staticmethod
+    def table_str(transactions: list[TransactionD]) -> str:
+        if not transactions:
+            return "<no transactions>"
+
+        # Sort by date ascending
+        txns_sorted = sorted(transactions, key=lambda t: t.transaction_date)
+
+        header = f"{'Date':<12} | {'Amount':>12} | {'Type':<6} | Description"
+        sep = "-" * len(header)
+        rows: list[str] = [header, sep]
+
+        for txn in txns_sorted:
+            date_str = txn.transaction_date.strftime("%Y-%m-%d")
+            amount_str = f"{txn.transaction_amount:,.2f}"
+            if txn.transaction_type == TransactionType.DEBIT:
+                amount_str = f"-${amount_str}"
+            else:
+                amount_str = f"+${amount_str}"
+
+            row = (
+                f"{date_str:<12} | "
+                f"{amount_str:>12} | "
+                f"{txn.transaction_type.value:<6} | "
+                f"{txn.transaction_description}"
+            )
+            rows.append(row)
+
+        return "\n".join(rows)
 
 
 # TODO: Decide whether to make this immutable or not. For now we need to set document_id after creation

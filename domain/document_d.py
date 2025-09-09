@@ -15,12 +15,12 @@ from utils.converters import b64decode, b64encode, determine_mime_type
 @dataclass(frozen=True)
 class PageD:
     page_number: int
-    page_binary: bytes  # single-page PDF or image bytes
+    file_binary: bytes  # single-page PDF or image bytes
     text: str | None = None  # extracted page text (if available)
 
     def __str__(self) -> str:
-        mime_type = determine_mime_type(self.page_binary)
-        size_kb = len(self.page_binary) / 1024
+        mime_type = determine_mime_type(self.file_binary)
+        size_kb = len(self.file_binary) / 1024
 
         if self.text:
             text_preview = self.text[:50].replace("\n", " ").strip()
@@ -33,14 +33,14 @@ class PageD:
     def __repr__(self) -> str:
         return (
             f"PageD(page_number={self.page_number}, "
-            f"page_binary=<{len(self.page_binary)} bytes>, "
+            f"file_binary=<{len(self.file_binary)} bytes>, "
             f"text={self.text!r})"
         )
 
     def to_dict(self, *, include_text: bool = False) -> dict[str, Any]:
         d: dict[str, Any] = {
             "page_number": self.page_number,
-            "page_binary_b64": b64encode(self.page_binary),
+            "file_binary_b64": b64encode(self.file_binary),
         }
         if include_text and self.text is not None:
             d["text"] = self.text
@@ -50,7 +50,7 @@ class PageD:
     def from_dict(cls, data: dict[str, Any]) -> PageD:
         return cls(
             page_number=int(data["page_number"]),
-            page_binary=b64decode(data["page_binary_b64"]),
+            file_binary=b64decode(data["file_binary_b64"]),
             text=data.get("text"),
         )
 
@@ -84,13 +84,13 @@ class RawDocumentD:
             self.document_id = self.compute_id()
         if not self.document_id:
             raise ValueError("document_id must be set or computable")
-        self.pages = self._create_pages()
+        self.pages = self.create_pages()
 
     @property
     def num_pages(self) -> int:
         return len(self.pages)
 
-    def _create_pages(self) -> list[PageD]:
+    def create_pages(self) -> list[PageD]:
         mime_type = determine_mime_type(self.file_binary)
 
         if mime_type == "application/pdf":
@@ -117,7 +117,7 @@ class RawDocumentD:
             pages.append(
                 PageD(
                     page_number=i + 1,
-                    page_binary=one_page_pdf,
+                    file_binary=one_page_pdf,
                     text=text,
                 )
             )
@@ -128,7 +128,7 @@ class RawDocumentD:
         return [
             PageD(
                 page_number=1,
-                page_binary=self.file_binary,
+                file_binary=self.file_binary,
                 text=None,  # TODO: Add OCR text extraction if needed
             )
         ]
