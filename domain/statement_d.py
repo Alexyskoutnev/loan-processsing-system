@@ -33,7 +33,6 @@ class TransactionD:
             "transaction_amount": {"type": "string", "pattern": r"^-?\d+(\.\d+)?$"},
             "transaction_description": {"type": "string"},
             "transaction_type": {"type": "string", "enum": ["debit", "credit"]},
-            "transaction_id": {"type": "string"},
         },
         "required": [
             "document_id",
@@ -75,7 +74,21 @@ class TransactionD:
 
     @classmethod
     def json_schema_array(cls) -> dict[str, Any]:
+        """Returns schema for an array of transactions."""
         return {"type": "array", "items": cls.JSON_SCHEMA}
+
+    @classmethod
+    def json_schema_wrapped_array(cls) -> dict[str, Any]:
+        """
+        Returns schema for an object containing an array of transactions.
+        This is needed for OpenAI's structured output which requires root to be an object.
+        """
+        return {
+            "type": "object",
+            "properties": {"transactions": cls.json_schema_array()},
+            "required": ["transactions"],
+            "additionalProperties": False,
+        }
 
     def __post_init__(self):
         if self.transaction_id is None:

@@ -16,14 +16,12 @@ TRANSACTION_SYSTEM_PROMPT: str = (
     "Extract ALL transactions from the provided bank statement(s). "
     "Each transaction should include: date (ISO format YYYY-MM-DD), amount (as string decimal), "
     "description, and type (debit for outflows/charges, credit for inflows/deposits). "
-    "Be thorough - capture every transaction shown in the statement. "
-    "Return ONLY a JSON array that conforms to the provided JSON schema."
+    "Return ONLY a JSON object with a 'transactions' array that conforms to the provided JSON schema."
 )
 
 
 class TransactionExtractor(BaseExtractor[RawDocumentD, list[TransactionD]]):
-    # Using the same model as StatementMetadataExtractor for consistency
-    llm_model: ClassVar[str] = "openai/gpt-5"
+    llm_model: ClassVar[str] = "openai/gpt-4o"
 
     def _process(self, element: RawDocumentD) -> list[TransactionD]:
         messages: list[dict[str, Any]] = [
@@ -36,27 +34,22 @@ class TransactionExtractor(BaseExtractor[RawDocumentD, list[TransactionD]]):
                 "text": (
                     "Task: Extract ALL transactions from the bank statement.\n"
                     f"Document ID: {element.document_id}\n"
-                    "For each transaction, extract:\n"
+                    "Return a JSON object with a 'transactions' array.\n"
+                    "Each transaction must include:\n"
                     " - document_id (use the document ID provided above)\n"
                     " - transaction_date (YYYY-MM-DD format)\n"
-                    " - transaction_amount (positive decimal string, e.g., '123.45')\n"
-                    " - transaction_description (the merchant/payee/description text)\n"
-                    " - transaction_type ('debit' for charges/outflows, 'credit' for deposits/inflows)\n"
-                    "\n"
-                    "Important:\n"
-                    " - Include ALL transactions visible in the statement\n"
-                    " - Amounts should always be positive (type indicates debit/credit)\n"
-                    " - Use exact dates from the statement\n"
-                    " - Preserve the original description text\n"
-                    " - Return an empty array [] if no transactions are found\n"
+                    " - transaction_amount (positive decimal string)\n"
+                    " - transaction_description (original text)\n"
+                    " - transaction_type ('debit' or 'credit')\n"
                 ),
             }
         ]
 
+        # Attach the document
         user_parts.extend(to_responses_input_parts(element))
-
         messages.append({"role": "user", "content": user_parts})
 
+        # Use the new wrapped schema method
         response = cast(
             dict[str, Any],
             litellm.completion(  # type: ignore
@@ -66,7 +59,7 @@ class TransactionExtractor(BaseExtractor[RawDocumentD, list[TransactionD]]):
                     "type": "json_schema",
                     "json_schema": {
                         "name": "TransactionList",
-                        "schema": TransactionD.json_schema_array(),
+                        "schema": TransactionD.json_schema_wrapped_array(),
                         "strict": True,
                     },
                 },
@@ -75,23 +68,21 @@ class TransactionExtractor(BaseExtractor[RawDocumentD, list[TransactionD]]):
 
         raw = response["choices"][0]["message"]["content"]
         try:
-            data_list = json.loads(raw)
+            data = json.loads(raw)
         except json.JSONDecodeError as e:
-            raise ValueError(f"Model did not return valid JSON: {e}\nRaw: {raw!r}") from e
+            raise ValueError(f"Model did not return valid JSON: {e}") from e
+
+        # Extract transactions from wrapper
+        if not isinstance(data, dict) or "transactions" not in data:
+            raise ValueError("Expected JSON object with 'transactions' key")
 
         transactions: list[TransactionD] = []
-        for idx, txn_data in enumerate(data_list):
+        for idx, txn_data in enumerate(data["transactions"]):  # type: ignore
             try:
                 txn_data["document_id"] = element.document_id
-                transaction = TransactionD.from_dict(txn_data)
-                transactions.append(transaction)
+                transactions.append(TransactionD.from_dict(txn_data))  # type: ignore
             except Exception as e:
-                # We raise an error if any transaction fails to parse
-                raise ValueError(
-                    f"Failed to construct TransactionD at index {idx} from data: {txn_data}"
-                ) from e
+                raise ValueError(f"Failed to parse transaction {idx}: {e}") from e
 
-        logging.info(
-            f"Extracted {len(transactions)} transactions from document {element.document_id}"
-        )
+        logging.info(f"Extracted {len(transactions)} transactions")
         return transactions

@@ -46,7 +46,6 @@ def process_statement(pdf_file: Path, dao: InMemDAO):
         else:
             logging.warning("  ✗ Document NOT balanced")
 
-    # Store
     dao.insert(document)
 
     logging.info(f"  Stored {len(transactions or [])} transactions")
