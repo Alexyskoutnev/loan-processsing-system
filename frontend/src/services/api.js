@@ -59,6 +59,25 @@ class ApiService {
     return response.json();
   }
 
+  async getDocumentTransactions(documentId) {
+    const response = await fetch(`${API_BASE_URL}/documents/${documentId}/transactions`);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to fetch transactions');
+    }
+    return response.json();
+  }
+
+  async getTransactionsBulk(documentIds) {
+    const ids = encodeURIComponent(documentIds.join(','));
+    const response = await fetch(`${API_BASE_URL}/transactions?ids=${ids}`);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to fetch transactions');
+    }
+    return response.json();
+  }
+
   async getDocumentInsights(documentId) {
     const response = await fetch(`${API_BASE_URL}/insights/${documentId}`);
     
@@ -67,6 +86,16 @@ class ApiService {
       throw new Error(error.error || 'Failed to fetch insights');
     }
 
+    return response.json();
+  }
+
+  async getInsightsBulk(documentIds) {
+    const ids = encodeURIComponent(documentIds.join(','));
+    const response = await fetch(`${API_BASE_URL}/insights?ids=${ids}`);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to fetch insights');
+    }
     return response.json();
   }
 
