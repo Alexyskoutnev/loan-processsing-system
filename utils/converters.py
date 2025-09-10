@@ -40,7 +40,6 @@ def to_responses_input_parts(
     mime = determine_mime_type(doc.file_binary)
 
     if mime in ("image/png", "image/jpeg"):
-        # Inline image bytes (Responses API)
         return [
             {
                 "type": "input_image",

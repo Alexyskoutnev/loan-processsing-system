@@ -7,6 +7,8 @@ from enum import Enum
 from typing import Any, ClassVar
 import uuid
 
+from domain.categories import TransactionCategory
+
 
 class TransactionType(Enum):
     DEBIT = "debit"  # outflow
@@ -22,6 +24,8 @@ class TransactionD:
     transaction_description: str
     transaction_type: TransactionType
     transaction_id: str | None = None  # if None, auto-UUID in __post_init__
+    # category assigned later in categorization step
+    category: TransactionCategory | None = None  # e.g. "groceries", "salary"
 
     # ---- JSON Schema co-located with the domain type ----
     JSON_SCHEMA: ClassVar[dict[str, Any]] = {
@@ -53,11 +57,14 @@ class TransactionD:
         else:
             amount_str = f"+${amount_str}"
 
+        category_str = f" [{self.category.value}]" if self.category else ""
+
         return (
             f"{date_str:<12} | "
             f"{amount_str:>12} | "
             f"{self.transaction_type.value:<6} | "
             f"{self.transaction_description}"
+            f"{category_str}"
         )
 
     def __repr__(self) -> str:
