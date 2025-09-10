@@ -76,6 +76,10 @@ class InMemDAO:
     def list_documents(self) -> list[DocumentD]:
         return list(self._documents.values())
 
+    def read_all(self) -> list[DocumentD]:
+        """Alias for list_documents to match API expectations."""
+        return self.list_documents()
+
     def save(self, file_path: Path | None = None) -> None:
         save_path = file_path or self._default_save_path
 

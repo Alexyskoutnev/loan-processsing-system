@@ -22,6 +22,10 @@ class StatementReconciliationService:
         if not document.metadata:
             return False
 
+        # Check if transactions is None
+        if document.transactions is None:
+            return False
+
         # Calculate totals
         total_debits = sum(
             t.transaction_amount

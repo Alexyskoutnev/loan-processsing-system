@@ -66,11 +66,35 @@ cython_debug/
 .DS_Store
 Thumbs.db
 
+# React / Node.js
+frontend/node_modules/
+frontend/build/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.pnp
+frontend/.pnp.js
+frontend/coverage/
+
 # claude json
 .settings.local.json
 .claude/**
 
-
 # ignore bin/data artifacts
 bin/
 _data/
+
+# JSON artifacts and temporary files
+*.json
+documents.json
+test_*.txt
+
+# uploads folder
+uploads/
+

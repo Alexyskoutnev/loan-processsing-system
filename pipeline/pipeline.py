@@ -18,6 +18,10 @@ def _load_pdf_file(pdf_file: Path) -> bytes:
         return f.read()
 
 
+def _create_raw_document_from_binary(file_binary: bytes, filename: str) -> RawDocumentD:
+    return RawDocumentD(file_binary=file_binary, as_of_date=dt.date.today())
+
+
 def _extract_statement_data(
     raw_document: RawDocumentD,
 ) -> tuple[StatementMetaDataD | None, list[TransactionD] | None]:
@@ -81,15 +85,13 @@ def _reconcile_statement(document: DocumentD):
         logging.warning("✗ Document NOT balanced")
 
 
-def _log_processing_results(pdf_file: Path, transactions: list[TransactionD]):
+def _log_processing_results(filename: str, transactions: list[TransactionD]):
     transaction_count = len(transactions) if transactions else 0
     categorized_count = sum(1 for t in transactions if t.category and t.category.value != "error")
     error_count = sum(1 for t in transactions if t.category and t.category.value == "error")
 
     if transactions:
-        logging.debug(
-            f"Extracted table for {pdf_file.name}:\n{TransactionD.table_str(transactions)}"
-        )
+        logging.debug(f"Extracted table for {filename}:\n{TransactionD.table_str(transactions)}")
 
     # Log summary with error details
     logging.info(
@@ -99,7 +101,7 @@ def _log_processing_results(pdf_file: Path, transactions: list[TransactionD]):
     # Log specific error details if any
     if error_count > 0:
         error_transactions = [t for t in transactions if t.category and t.category.value == "error"]
-        logging.warning(f"Found {error_count} categorization errors in {pdf_file.name}:")
+        logging.warning(f"Found {error_count} categorization errors in {filename}:")
         for i, txn in enumerate(error_transactions[:5], 1):  # Log first 5 errors
             logging.warning(f"  Error {i}: {txn.transaction_description}...")
         if len(error_transactions) > 5:
@@ -107,20 +109,20 @@ def _log_processing_results(pdf_file: Path, transactions: list[TransactionD]):
 
 
 def _process_empty_document(
-    pdf_file: Path, raw_document: RawDocumentD, doc_dao: InMemDAO
+    filename: str, raw_document: RawDocumentD, doc_dao: InMemDAO
 ) -> DocumentD:
     "Case where there is no valid statement data extracted."
-    logging.warning(f"No transactions extracted from {pdf_file.name} - creating empty document")
+    logging.warning(f"No transactions extracted from {filename} - creating empty document")
     empty_transactions: list[TransactionD] = []
     document = _create_document(raw_document, None, empty_transactions)
     # Do we insert empty documents? For now, yes.
     doc_dao.insert(document)
-    _log_processing_results(pdf_file, empty_transactions)
+    _log_processing_results(filename, empty_transactions)
     return document
 
 
 def _process_valid_statement(
-    pdf_file: Path,
+    filename: str,
     raw_document: RawDocumentD,
     metadata: StatementMetaDataD,
     transactions: list[TransactionD],
@@ -140,12 +142,42 @@ def _process_valid_statement(
     # Reconcile and store
     _reconcile_statement(document)
     doc_dao.insert(document)
-    _log_processing_results(pdf_file, categorized_transactions)
+    _log_processing_results(filename, categorized_transactions)
 
     return document
 
 
-#### Main processing function ####
+#### Main processing functions ####
+def process_statement_from_binary(
+    file_binary: bytes, filename: str, doc_dao: InMemDAO
+) -> DocumentD:
+    """Process bank statement from binary PDF data."""
+    logging.info(f"Processing {filename} ({len(file_binary)} bytes)")
+
+    # Create raw document from binary data
+    raw_document = _create_raw_document_from_binary(file_binary, filename)
+
+    # Extract base metadata and transactions
+    metadata, transactions = _extract_statement_data(raw_document)
+
+    # Route processing based on what data was successfully extracted
+    match (metadata, transactions):
+        case (None, _) | (_, None) | (_, []):
+            # Case 1: Missing critical data - treat as non-statement document
+            return _process_empty_document(filename, raw_document, doc_dao)
+
+        case (metadata, transactions) if metadata and transactions:
+            # Case 2: Complete statement data - full processing pipeline
+            return _process_valid_statement(filename, raw_document, metadata, transactions, doc_dao)
+
+        case _:
+            # Case 3: Defensive fallback for unexpected data combinations
+            logging.warning(
+                f"Unexpected extraction result for {filename}: metadata={type(metadata)}, transactions={type(transactions)}"
+            )
+            return _process_empty_document(filename, raw_document, doc_dao)
+
+
 def process_statement(pdf_file: Path, doc_dao: InMemDAO) -> DocumentD:
     logging.info(f"Processing {pdf_file.name}")
 
@@ -165,12 +197,14 @@ def process_statement(pdf_file: Path, doc_dao: InMemDAO) -> DocumentD:
         case (None, _) | (_, None) | (_, []):
             # Case 1: Missing critical data - treat as non-statement document
             # Examples: image files, corrupted PDFs, non-financial documents
-            return _process_empty_document(pdf_file, raw_document, doc_dao)
+            return _process_empty_document(pdf_file.name, raw_document, doc_dao)
 
         case (metadata, transactions) if metadata and transactions:
             # Case 2: Complete statement data - full processing pipeline
             # Includes: categorization, reconciliation, validation
-            return _process_valid_statement(pdf_file, raw_document, metadata, transactions, doc_dao)
+            return _process_valid_statement(
+                pdf_file.name, raw_document, metadata, transactions, doc_dao
+            )
 
         case _:
             # Case 3: Defensive fallback for unexpected data combinations
@@ -178,7 +212,7 @@ def process_statement(pdf_file: Path, doc_dao: InMemDAO) -> DocumentD:
             logging.warning(
                 f"Unexpected extraction result for {pdf_file.name}: metadata={type(metadata)}, transactions={type(transactions)}"
             )
-            return _process_empty_document(pdf_file, raw_document, doc_dao)
+            return _process_empty_document(pdf_file.name, raw_document, doc_dao)
 
 
 def process_all_statements(data_folder: Path, dao: InMemDAO):
