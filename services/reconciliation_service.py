@@ -16,9 +16,10 @@ class StatementReconciliationService:
         Check if document balances within tolerance.
 
         Returns True if balanced, False otherwise.
-        Returns False if missing metadata or transactions.
+        Returns False if missing metadata or transactions is None.
+        Empty transactions list is valid if opening == closing balance.
         """
-        if not document.metadata or not document.transactions:
+        if not document.metadata:
             return False
 
         # Calculate totals
