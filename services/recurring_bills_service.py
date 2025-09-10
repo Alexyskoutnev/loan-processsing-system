@@ -9,11 +9,8 @@ from domain.underwriting_d import RecurringBill
 
 
 class RecurringBillsService:
-    """Service for detecting recurring bill patterns in transactions."""
-
     @classmethod
     def detect_recurring_bills(cls, transactions: list[TransactionD]) -> list[RecurringBill]:
-        """Detect recurring bill patterns by analyzing merchant and category patterns."""
         # Group transactions by (merchant, category)
         groups: dict[tuple[str, str], list[TransactionD]] = defaultdict(list)
 

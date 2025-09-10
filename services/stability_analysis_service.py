@@ -188,5 +188,5 @@ class StabilityAnalysisService:
         """Sum decimal values safely."""
         total = Decimal("0")
         for pv in values:
-            total += v
+            total += pv
         return total

@@ -151,16 +151,15 @@ def _process_valid_statement(
 def process_statement_from_binary(
     file_binary: bytes, filename: str, doc_dao: InMemDAO
 ) -> DocumentD:
-    """Process bank statement from binary PDF data."""
-    logging.info(f"Processing {filename} ({len(file_binary)} bytes)")
-
-    # Create raw document from binary data
     raw_document = _create_raw_document_from_binary(file_binary, filename)
 
-    # Extract base metadata and transactions
     metadata, transactions = _extract_statement_data(raw_document)
 
     # Route processing based on what data was successfully extracted
+    # Cases handled:
+    # 1. Empty: No metadata OR no transactions OR empty transaction list
+    # 2. Valid: Both metadata and transactions present
+    # 3. Fallback: Safety net for unexpected combinations
     match (metadata, transactions):
         case (None, _) | (_, None) | (_, []):
             # Case 1: Missing critical data - treat as non-statement document
@@ -215,6 +214,7 @@ def process_statement(pdf_file: Path, doc_dao: InMemDAO) -> DocumentD:
             return _process_empty_document(pdf_file.name, raw_document, doc_dao)
 
 
+# TODO: Old code, remove later
 def process_all_statements(data_folder: Path, dao: InMemDAO):
     pdf_files = list(data_folder.glob("*.pdf"))
 

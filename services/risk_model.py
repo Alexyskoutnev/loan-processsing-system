@@ -28,10 +28,8 @@ class RiskModel:
         if not transactions:
             return RiskScore(0, RiskRating.D)
 
-        # Calculate core metrics
         metrics = cls._calculate_core_metrics(transactions)
 
-        # Calculate score components
         score = 50  # Start at middle
         score += cls._score_cash_flow(metrics["net_cash_flow"], metrics["income"])
         score += cls._score_debt_coverage(metrics["debt_payments"], metrics["net_cash_flow"])
@@ -46,7 +44,6 @@ class RiskModel:
 
     @classmethod
     def _calculate_core_metrics(cls, transactions: list[TransactionD]) -> dict:
-        """Calculate core financial metrics"""
         buckets = TransactionRiskBucketService.categorize_and_bucket(transactions)
         income = cls._sum_credits(transactions)
         expenses = cls._sum_debits(transactions)
@@ -151,7 +148,6 @@ class RiskModel:
 
     @classmethod
     def _sum_bucket_debits(cls, buckets: dict, bucket: RiskBucketD) -> Decimal:
-        """Sum debits in a specific bucket."""
         return sum(
             t.transaction_amount
             for t in buckets.get(bucket, [])

@@ -12,8 +12,6 @@ from services.transaction_bucket_service import TransactionRiskBucketService
 
 
 class DebtAnalysisService:
-    """Service for analyzing debt and loan payment patterns."""
-
     @classmethod
     def calculate_debt_metrics(
         cls,

@@ -22,7 +22,7 @@ STATEMENT_SYSTEM_PROMPT: str = (
 class StatementMetadataExtractor(BaseExtractor[RawDocumentD, StatementMetaDataD]):
     # TODO: I want to make this a enum (easier to tab/manage) instead of a string
     # llm_model: ClassVar[str] = "openai/gpt-5"
-    llm_model: ClassVar[str] = "openai/gpt-5"
+    llm_model: ClassVar[str] = "openai/gpt-5-mini"
 
     def _process(self, element: RawDocumentD) -> StatementMetaDataD:
         messages: list[dict[str, Any]] = [

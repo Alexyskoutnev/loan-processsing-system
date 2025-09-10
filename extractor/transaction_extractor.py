@@ -24,7 +24,7 @@ TRANSACTION_SYSTEM_PROMPT: str = (
 
 class TransactionExtractor(BaseExtractor[RawDocumentD, list[TransactionD]]):
     # llm_model: ClassVar[str] = "openai/gpt-5"
-    llm_model: ClassVar[str] = "openai/gpt-5"
+    llm_model: ClassVar[str] = "openai/gpt-5-mini"
 
     # Threading knobs
     _MAX_WORKERS: ClassVar[int] = 16

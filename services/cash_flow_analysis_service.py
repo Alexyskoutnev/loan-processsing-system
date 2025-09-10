@@ -9,8 +9,6 @@ from domain.underwriting_d import CashFlowMetrics
 
 
 class CashFlowAnalysisService:
-    """Service for analyzing cash flow patterns from transactions."""
-
     @classmethod
     def calculate_cash_flow_metrics(
         cls, transactions: list[TransactionD], buckets: Mapping[RiskBucketD, list[TransactionD]]
@@ -43,7 +41,6 @@ class CashFlowAnalysisService:
 
     @classmethod
     def _is_transfer(cls, t: TransactionD) -> bool:
-        """Check if transaction is a transfer/liquidity movement."""
         cat = getattr(t, "category", None)
         return bool(cat and getattr(cat, "risk_bucket", None) == RiskBucketD.LIQUIDITY_MOVEMENT)
 
@@ -69,7 +66,6 @@ class CashFlowAnalysisService:
     def _calculate_operating_expenses(
         cls, buckets: Mapping[RiskBucketD, list[TransactionD]]
     ) -> Decimal:
-        """Calculate operating expenses from OPERATING_EXPENSE bucket debits."""
         operating_txns = buckets.get(RiskBucketD.OPERATING_EXPENSE, [])
         return cls._sum_decimal(
             t.transaction_amount
@@ -81,7 +77,6 @@ class CashFlowAnalysisService:
     def _calculate_discretionary_expenses(
         cls, buckets: Mapping[RiskBucketD, list[TransactionD]]
     ) -> Decimal:
-        """Calculate discretionary expenses from DISCRETIONARY_EXPENSE bucket debits."""
         discretionary_txns = buckets.get(RiskBucketD.DISCRETIONARY_EXPENSE, [])
         return cls._sum_decimal(
             t.transaction_amount
@@ -93,7 +88,6 @@ class CashFlowAnalysisService:
     def calculate_liquidity_flows(
         cls, buckets: Mapping[RiskBucketD, list[TransactionD]]
     ) -> tuple[Decimal, Decimal]:
-        """Calculate liquidity inflows and outflows from LIQUIDITY_MOVEMENT bucket."""
         liquidity_txns = buckets.get(RiskBucketD.LIQUIDITY_MOVEMENT, [])
 
         inflows = cls._sum_decimal(
