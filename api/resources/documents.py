@@ -24,7 +24,7 @@ class DocumentsResource:
                     "document_id": doc_id,
                     "filename": f"document_{doc_id[:8]}.pdf",
                     "upload_date": doc.as_of_date.isoformat(),
-                    "has_metadata": doc.metadata,
+                    "has_metadata": doc.metadata is not None,  # type: ignore
                     "transaction_count": len(doc.transactions) if doc.transactions else 0,
                     "page_count": len(doc.pages),
                 }
@@ -71,7 +71,7 @@ class DocumentsResource:
                 "document_id": document_id,
                 "filename": f"document_{document_id[:8]}.pdf",
                 "upload_date": document.as_of_date.isoformat(),
-                "has_metadata": document.metadata,
+                "has_metadata": document.metadata is not None,  # type: ignore
                 "transaction_count": len(document.transactions) if document.transactions else 0,
                 "page_count": len(document.pages),
                 "binary_data": base64.b64encode(document.file_binary).decode("utf-8"),

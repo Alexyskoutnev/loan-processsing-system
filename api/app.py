@@ -23,8 +23,7 @@ def _load_dao(dao: InMemDAO, documents_file: Path) -> None:
         except json.JSONDecodeError as e:
             logging.warning(f"Invalid JSON in {documents_file}: {e}")
         if valid_json:
-            logging.warning(f"Renaming invalid JSON file {documents_file} to {documents_file}.bak")
-            documents_file.rename(documents_file.with_suffix(".bak"))
+            logging.info(f"Loading documents from {documents_file}")
             try:
                 dao.load(documents_file)
                 logging.info(f"Loaded {len(dao.read_all())} existing documents")

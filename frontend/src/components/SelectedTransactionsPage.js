@@ -117,7 +117,7 @@ const SelectedTransactionsPage = ({ selectedIds = [] }) => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', p: 2, pb: 1 }}>
-        <Typography variant="h5" sx={{ fontWeight: 600, flexGrow: 1 }}>Selected Transactions</Typography>
+        <Typography variant="h5" sx={{ fontWeight: 600, flexGrow: 1 }}>Transactions</Typography>
         <Chip label={`${filtered.length} rows`} size="small" sx={{ mr: 1 }} />
         <Chip label={`Credits ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totals.credits)}`} color="success" variant="outlined" size="small" sx={{ mr: 1 }} />
         <Chip label={`Debits ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totals.debits)}`} color="error" variant="outlined" size="small" sx={{ mr: 1 }} />

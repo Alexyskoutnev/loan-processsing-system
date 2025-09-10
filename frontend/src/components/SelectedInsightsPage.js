@@ -186,7 +186,7 @@ const SelectedInsightsPage = ({ selectedIds = [] }) => {
   return (
     <Box sx={{ p: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" sx={{ fontWeight: 600, flexGrow: 1 }}>Selected Insights</Typography>
+        <Typography variant="h5" sx={{ fontWeight: 600, flexGrow: 1 }}>Insights</Typography>
         <Tooltip title="Export CSV">
           <span>
             <IconButton onClick={() => exportCsv(rows)} disabled={rows.length === 0}>
