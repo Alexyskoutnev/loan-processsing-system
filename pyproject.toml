@@ -7,6 +7,7 @@ requires-python = ">=3.11"
 dependencies = [
     "litellm>=1.76.3",
     "pypdf>=6.0.0",
+    "pytest>=8.4.2",
 ]
 
 [tool.ruff]
@@ -60,10 +61,28 @@ useLibraryCodeForTypes = true
 
 # Per-module overrides can be configured later as needed
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "--strict-config",
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "slow: Slow tests",
+]
+
 # Dev dependencies will be managed by uv using a dev group.
 [tool.uv]
 dev-dependencies = [
     "ruff",
     "pyright",
     "pre-commit",
+    "pytest",
 ]
