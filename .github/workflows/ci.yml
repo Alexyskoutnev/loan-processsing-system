@@ -57,6 +57,10 @@ jobs:
 
       - name: Run tests
         run: uv run pytest
+        env:
+          PYTHONPATH: .
 
       - name: Run domain tests specifically (for verification)
         run: uv run pytest tests/domain/ --tb=line
+        env:
+          PYTHONPATH: .
