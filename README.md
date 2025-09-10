@@ -2,12 +2,13 @@
 
 Automated bank statement analysis and loan decision support system. Upload PDF statements, get instant loan recommendations.
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Start API Server
+Make sure package manager uv is installed
 ```bash
-pip install -r requirements.txt
-python main.py
+# automatically syncs with python virtual env and start the API server
+./start_api.sh
 ```
 API runs at `http://localhost:8000`
 

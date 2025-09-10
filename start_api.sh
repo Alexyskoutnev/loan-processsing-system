@@ -21,7 +21,7 @@ fi
 export HOST="127.0.0.1"
 export PORT="8000"
 export N_WORKERS="1"
-export TIMEOUT="120"
+export TIMEOUT="900" # 15 minutes (so workers don't timeout on long requests on llm pipeline hits)
 
 echo "Starting Bank Processing API with UV:"
 echo "Workers: ${N_WORKERS}"
@@ -32,7 +32,6 @@ echo "Timeout: ${TIMEOUT}"
 # Sync dependencies with uv
 uv sync
 
-# Run with uv
 echo "Starting server..."
 PYTHONPATH=. uv run gunicorn -w "${N_WORKERS}" \
                              -b "${HOST}:${PORT}" \

@@ -1,14 +1,16 @@
 import logging
+from typing import Any
 
 import falcon
 
+from domain.document_d import DocumentD
 from services.underwriting_metrics_service_v2 import UnderwritingMetricsService
 from storage.document_dao import InMemDAO, NotFound
 
 
 class InsightsResource:
     @classmethod
-    def get_document_underwriting_insights(cls, document_id: str, dao: InMemDAO) -> dict:
+    def get_document_underwriting_insights(cls, document_id: str, dao: InMemDAO) -> dict[str, Any]:
         """Get underwriting insights for a specific document."""
 
         try:
@@ -47,7 +49,7 @@ class InsightsResource:
             ) from e
 
     @classmethod
-    def get_bulk_underwriting_insights(cls, ids: list[str], dao: InMemDAO) -> dict:
+    def get_bulk_underwriting_insights(cls, ids: list[str], dao: InMemDAO) -> dict[str, Any]:
         """Get underwriting insights for multiple documents in one call.
 
         Response shape:
@@ -65,7 +67,7 @@ class InsightsResource:
           ]
         }
         """
-        results: list[dict] = []
+        results: list[dict[str, Any]] = []
 
         for doc_id in ids:
             try:
@@ -116,9 +118,9 @@ class InsightsResource:
         return {"success": True, "results": results}
 
     @classmethod
-    def _metrics_to_dict(cls, metrics) -> dict:
+    def _metrics_to_dict(cls, metrics: Any) -> dict[str, Any]:
         """Convert metrics object to dictionary."""
-        result = {}
+        result: dict[str, Any] = {}
 
         # Extract key metrics attributes
         for attr in dir(metrics):
@@ -129,7 +131,7 @@ class InsightsResource:
                 if hasattr(value, "__dict__"):
                     # Nested object - recursively convert
                     result[attr] = cls._object_to_dict(value)
-                elif hasattr(value, "__iter__") and not isinstance(value, (str, bytes)):
+                elif hasattr(value, "__iter__") and not isinstance(value, str | bytes):
                     # Iterable (list, tuple) - convert elements
                     result[attr] = [
                         cls._object_to_dict(item) if hasattr(item, "__dict__") else str(item)
@@ -146,7 +148,7 @@ class InsightsResource:
         return result
 
     @classmethod
-    def _document_metadata(cls, document) -> dict:
+    def _document_metadata(cls, document: DocumentD) -> dict[str, Any] | None:
         """Extract document metadata for response."""
         if not document.metadata:
             return None
@@ -171,12 +173,12 @@ class InsightsResource:
         }
 
     @classmethod
-    def _object_to_dict(cls, obj) -> dict:
+    def _object_to_dict(cls, obj: Any) -> dict[str, Any] | None:
         """Convert any object to dictionary format."""
         if obj is None:
             return None
 
-        result = {}
+        result: dict[str, Any] = {}
         for attr in dir(obj):
             if not attr.startswith("_") and not callable(getattr(obj, attr)):
                 value = getattr(obj, attr)

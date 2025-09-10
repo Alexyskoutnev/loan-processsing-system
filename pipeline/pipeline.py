@@ -141,7 +141,6 @@ def _process_valid_statement(
 
     # Reconcile and store
     _reconcile_statement(document)
-    doc_dao.insert(document)
     _log_processing_results(filename, categorized_transactions)
 
     return document

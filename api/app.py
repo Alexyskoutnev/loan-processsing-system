@@ -1,3 +1,4 @@
+import json
 import logging
 from pathlib import Path
 
@@ -6,9 +7,38 @@ import falcon
 from api.api_router import ApiRouter
 from storage.document_dao import InMemDAO
 
+LOG_FILE = Path("bin/logs/api.log")
+if not LOG_FILE.parent.exists():
+    LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+
+def _load_dao(dao: InMemDAO, documents_file: Path) -> None:
+    if documents_file.exists():
+        # check if its values are valid json
+        valid_json = False
+        try:
+            with open(documents_file) as f:
+                json.load(f)
+                valid_json = True
+        except json.JSONDecodeError as e:
+            logging.warning(f"Invalid JSON in {documents_file}: {e}")
+        if valid_json:
+            logging.warning(f"Renaming invalid JSON file {documents_file} to {documents_file}.bak")
+            documents_file.rename(documents_file.with_suffix(".bak"))
+            try:
+                dao.load(documents_file)
+                logging.info(f"Loaded {len(dao.read_all())} existing documents")
+            except Exception as e:
+                logging.warning(f"Failed to load documents: {e}")
+
 
 def create_app() -> falcon.App:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+    # file handler and stdout handlers to root logger
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[logging.FileHandler(LOG_FILE), logging.StreamHandler()],
+    )
     logging.info("Starting Bank Processing API")
 
     app = falcon.App(
@@ -20,12 +50,7 @@ def create_app() -> falcon.App:
     dao = InMemDAO()
     documents_file = Path("bin/documents.json")
 
-    if documents_file.exists():
-        try:
-            dao.load(documents_file)
-            logging.info(f"Loaded {len(dao.read_all())} existing documents")
-        except Exception as e:
-            logging.warning(f"Failed to load documents: {e}")
+    _load_dao(dao, documents_file)
 
     api_router = ApiRouter(document_dao=dao, documents_file=documents_file)
 

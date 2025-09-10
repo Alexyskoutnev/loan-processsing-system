@@ -368,7 +368,7 @@ const DocumentList = ({ selectedIds: selectedIdsProp, onSelectedChange }) => {
                             tabIndex={-1}
                             sx={{ textTransform: 'none', cursor: 'default' }}
                           >
-                            Metadata
+                            Details
                           </Button>
                         </Tooltip>
                       </Box>

@@ -1,10 +1,12 @@
 import base64
+import hashlib
 import logging
 from pathlib import Path
 from typing import Any
 
 import falcon
 
+from domain.document_d import DocumentD
 from pipeline.pipeline import process_statement_from_binary
 from storage.document_dao import InMemDAO
 
@@ -15,28 +17,31 @@ class DocumentsResource:
         try:
             documents = dao.read_all()
 
-            documents_list = []
+            documents_list: list[dict[str, Any]] = []
             for doc in documents:
-                doc_summary = {
-                    "document_id": doc.document_id,
-                    "filename": f"document_{doc.document_id[:8]}.pdf",
+                doc_id = doc.document_id or "unknown"
+                doc_summary: dict[str, Any] = {
+                    "document_id": doc_id,
+                    "filename": f"document_{doc_id[:8]}.pdf",
                     "upload_date": doc.as_of_date.isoformat(),
-                    "has_metadata": doc.metadata is not None,
+                    "has_metadata": doc.metadata,
                     "transaction_count": len(doc.transactions) if doc.transactions else 0,
                     "page_count": len(doc.pages),
                 }
 
                 if doc.metadata:
-                    doc_summary.update(
-                        {
-                            "statement_name": f"{doc.metadata.bank_name} - {doc.metadata.account_holder_name}",
-                            "opening_balance": str(doc.metadata.statement_opening_balance)
-                            if doc.metadata.statement_opening_balance
-                            else None,
-                            "closing_balance": str(doc.metadata.statement_closing_balance)
-                            if doc.metadata.statement_closing_balance
-                            else None,
-                        }
+                    doc_summary["statement_name"] = (
+                        f"{doc.metadata.bank_name} - {doc.metadata.account_holder_name}"
+                    )
+                    doc_summary["opening_balance"] = (
+                        str(doc.metadata.statement_opening_balance)
+                        if doc.metadata.statement_opening_balance
+                        else None
+                    )
+                    doc_summary["closing_balance"] = (
+                        str(doc.metadata.statement_closing_balance)
+                        if doc.metadata.statement_closing_balance
+                        else None
                     )
 
                 documents_list.append(doc_summary)
@@ -66,7 +71,7 @@ class DocumentsResource:
                 "document_id": document_id,
                 "filename": f"document_{document_id[:8]}.pdf",
                 "upload_date": document.as_of_date.isoformat(),
-                "has_metadata": document.metadata is not None,
+                "has_metadata": document.metadata,
                 "transaction_count": len(document.transactions) if document.transactions else 0,
                 "page_count": len(document.pages),
                 "binary_data": base64.b64encode(document.file_binary).decode("utf-8"),
@@ -90,14 +95,13 @@ class DocumentsResource:
 
     @classmethod
     def get_document_transactions(cls, document_id: str, dao: InMemDAO) -> dict[str, Any]:
-        """Return all transactions for a given document as JSON-serializable dicts."""
         try:
             document = dao.read(document_id)
         except ValueError as e:
             raise falcon.HTTPNotFound(description=f"Document {document_id} not found") from e
 
         try:
-            transactions = []
+            transactions: list[dict[str, Any]] = []
             if document.transactions:
                 for t in document.transactions:
                     # Domain object has to_dict returning strings for Decimal and ISO dates
@@ -119,7 +123,6 @@ class DocumentsResource:
 
     @classmethod
     def get_transactions_bulk(cls, ids: list[str], dao: InMemDAO) -> dict[str, Any]:
-        """Return combined transactions for multiple document IDs."""
         combined: list[dict[str, Any]] = []
         not_found: list[str] = []
         for doc_id in ids:
@@ -143,7 +146,7 @@ class DocumentsResource:
         }
 
     @classmethod
-    def _get_metadata_summary(cls, document) -> dict[str, Any] | None:
+    def _get_metadata_summary(cls, document: DocumentD) -> dict[str, Any] | None:
         if not document.metadata:
             return None
 
@@ -167,6 +170,14 @@ class DocumentsResource:
         }
 
     @classmethod
+    def _check_if_document_exists(cls, dao: InMemDAO, file_binary: bytes) -> bool:
+        # Check if a document with the same content hash already exists in the DAO
+        h = hashlib.sha256()
+        h.update(file_binary)
+        file_hash = h.hexdigest()
+        return any(doc.document_id == file_hash for doc in dao.read_all())
+
+    @classmethod
     def upload_and_process_document(
         cls, req: falcon.Request, dao: InMemDAO, documents_file: Path
     ) -> dict[str, Any]:
@@ -184,6 +195,10 @@ class DocumentsResource:
 
             file_binary = base64.b64decode(data["file_data"])
 
+            if cls._check_if_document_exists(dao, file_binary):
+                logging.warning(f"Duplicate document upload attempt: {filename}")
+                raise falcon.HTTPBadRequest(description=f"Document {filename} already exists")
+
             if not file_binary:
                 raise falcon.HTTPBadRequest(description="Empty file provided")
 
@@ -192,8 +207,9 @@ class DocumentsResource:
 
             logging.info(f"Processing uploaded document: {filename} ({len(file_binary)} bytes)")
 
-            process_statement_from_binary(file_binary, filename, dao)
-
+            document_d = process_statement_from_binary(file_binary, filename, dao)
+            # inserting document then saving the "app state" to disk
+            dao.insert(document_d)
             dao.save(documents_file)
 
             return {
