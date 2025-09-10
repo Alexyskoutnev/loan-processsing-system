@@ -33,3 +33,34 @@ jobs:
 
       - name: Pyright
         run: uv run pyright
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install dependencies
+        run: |
+          uv sync --all-extras --dev
+
+      - name: Run tests
+        run: uv run pytest
+        env:
+          PYTHONPATH: .
+
+      - name: Run domain tests specifically (for verification)
+        run: uv run pytest tests/domain/ --tb=line
+        env:
+          PYTHONPATH: .

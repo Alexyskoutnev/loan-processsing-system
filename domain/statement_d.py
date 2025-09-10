@@ -7,7 +7,7 @@ from enum import Enum
 from typing import Any, ClassVar
 import uuid
 
-from domain.categories import TransactionCategory
+from domain.categories_d import TransactionCategoryD
 
 
 class TransactionType(Enum):
@@ -25,7 +25,7 @@ class TransactionD:
     transaction_type: TransactionType
     transaction_id: str | None = None  # if None, auto-UUID in __post_init__
     # category assigned later in categorization step
-    category: TransactionCategory | None = None  # e.g. "groceries", "salary"
+    category: TransactionCategoryD | None = None  # e.g. "groceries", "salary"
 
     # ---- JSON Schema co-located with the domain type ----
     JSON_SCHEMA: ClassVar[dict[str, Any]] = {
@@ -107,7 +107,7 @@ class TransactionD:
             raise ValueError("transaction_id must be set or computable")
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        result = {
             "document_id": self.document_id,
             "transaction_date": self.transaction_date.isoformat(),  # YYYY-MM-DD
             "transaction_amount": str(self.transaction_amount),  # JSON-safe
@@ -115,10 +115,14 @@ class TransactionD:
             "transaction_type": self.transaction_type.value,  # "debit"/"credit"
             "transaction_id": self.transaction_id,
         }
+        # Include category if it exists
+        if self.category is not None:
+            result["category"] = self.category.value
+        return result
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> TransactionD:
-        return cls(
+        transaction = cls(
             transaction_id=data.get("transaction_id"),
             document_id=data["document_id"],
             transaction_date=dt.date.fromisoformat(data["transaction_date"]),
@@ -126,6 +130,10 @@ class TransactionD:
             transaction_description=data["transaction_description"],
             transaction_type=TransactionType(data["transaction_type"]),
         )
+        # Set category if present in data
+        if "category" in data:
+            transaction.category = TransactionCategoryD.from_json(data["category"])
+        return transaction
 
     @staticmethod
     def table_str(transactions: list[TransactionD]) -> str:
@@ -147,11 +155,14 @@ class TransactionD:
             else:
                 amount_str = f"+${amount_str}"
 
+            category_str = f" [{txn.category.value}]" if txn.category else ""
+
             row = (
                 f"{date_str:<12} | "
                 f"{amount_str:>12} | "
                 f"{txn.transaction_type.value:<6} | "
                 f"{txn.transaction_description}"
+                f"{category_str}"
             )
             rows.append(row)
 

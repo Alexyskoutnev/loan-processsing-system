@@ -6,7 +6,7 @@ from typing import ClassVar
 
 import litellm
 
-from domain.categories import TransactionCategory
+from domain.categories_d import TransactionCategoryD
 from domain.statement_d import TransactionD, TransactionType
 from extractor.base_extractor import BaseExtractor
 
@@ -27,7 +27,7 @@ class TransactionCategorizationExtractor(BaseExtractor[list[TransactionD], list[
 
     # ----- Prompt -----
     def _create_prompt_template(self) -> str:
-        cats = ", ".join(TransactionCategory.list_all())
+        cats = ", ".join(TransactionCategoryD.list_all())
         return (
             "You are a financial assistant that categorizes business and personal transactions.\n"
             f"Choose the single best category from: {cats}\n\n"
@@ -53,76 +53,76 @@ class TransactionCategorizationExtractor(BaseExtractor[list[TransactionD], list[
 
     def _check_fees_interest(
         self, desc: str, txn_type: TransactionType
-    ) -> TransactionCategory | None:
+    ) -> TransactionCategoryD | None:
         """Check for fees and interest patterns."""
         if any(x in desc for x in ("ACCOUNT FEE", "SERVICE FEE", "BANK FEE", "CHARGE:")):
-            return TransactionCategory.BANK_FEES
+            return TransactionCategoryD.BANK_FEES
         if "INTEREST" in desc:
             return (
-                TransactionCategory.INTEREST_INCOME
+                TransactionCategoryD.INTEREST_INCOME
                 if txn_type == TransactionType.CREDIT
-                else TransactionCategory.INTEREST_EXPENSE
+                else TransactionCategoryD.INTEREST_EXPENSE
             )
         return None
 
-    def _check_utilities_telecom(self, desc: str) -> TransactionCategory | None:
+    def _check_utilities_telecom(self, desc: str) -> TransactionCategoryD | None:
         """Check for utilities and telecom patterns."""
         if any(x in desc for x in ("POWER", "ELECTRIC", "WATER", "GAS", "UTILITY")):
-            return TransactionCategory.UTILITIES
+            return TransactionCategoryD.UTILITIES
         if any(
             x in desc
             for x in ("TELSTRA", "VODAFONE", "AT&T", "VERIZON", "T-MOBILE", "INTERNET", "BROADBAND")
         ):
-            return TransactionCategory.TELECOM_INTERNET
+            return TransactionCategoryD.TELECOM_INTERNET
         return None
 
-    def _check_housing(self, desc: str) -> TransactionCategory | None:
+    def _check_housing(self, desc: str) -> TransactionCategoryD | None:
         """Check for housing patterns."""
         if "RENT" in desc:
-            return TransactionCategory.RENT
+            return TransactionCategoryD.RENT
         if any(x in desc for x in ("MORTGAGE", "ESCROW")):
-            return TransactionCategory.MORTGAGE
+            return TransactionCategoryD.MORTGAGE
         return None
 
     def _check_payroll_government(
         self, desc: str, txn_type: TransactionType
-    ) -> TransactionCategory | None:
+    ) -> TransactionCategoryD | None:
         """Check for payroll and government patterns."""
         if any(x in desc for x in ("PAYROLL", "PAY RUN", "SALARY", "WAGES")):
             return (
-                TransactionCategory.SALARY_WAGES
+                TransactionCategoryD.SALARY_WAGES
                 if txn_type == TransactionType.CREDIT
-                else TransactionCategory.PAYROLL_SALARIES
+                else TransactionCategoryD.PAYROLL_SALARIES
             )
         if (
             any(x in desc for x in ("TREAS 310", "IRS", "TAX REFUND", "SSA", "STATE OF", "CITY OF"))
             and txn_type == TransactionType.CREDIT
         ):
-            return TransactionCategory.GOVERNMENT_PAYMENT
+            return TransactionCategoryD.GOVERNMENT_PAYMENT
         return None
 
     def _check_transfers_cards(
         self, desc: str, txn_type: TransactionType
-    ) -> TransactionCategory | None:
+    ) -> TransactionCategoryD | None:
         """Check for transfers and card transactions."""
         if any(x in desc for x in ("ATM", "CASH WITHDRAWAL", "CSH", "CPT")):
-            return TransactionCategory.WITHDRAWAL
+            return TransactionCategoryD.WITHDRAWAL
         if any(x in desc for x in ("TRANSFER", "NEFT", "IMPS", "FPI", "UPI")):
             return (
-                TransactionCategory.TRANSFER_IN
+                TransactionCategoryD.TRANSFER_IN
                 if txn_type == TransactionType.CREDIT
-                else TransactionCategory.TRANSFER_OUT
+                else TransactionCategoryD.TRANSFER_OUT
             )
         if any(x in desc for x in ("POS", "DEBIT PURCHASE", "CARD", "SWIPE", "MERCHANT")):
-            return TransactionCategory.VENDOR_PAYMENT
+            return TransactionCategoryD.VENDOR_PAYMENT
         return None
 
-    def _check_lifestyle(self, desc: str) -> TransactionCategory | None:
+    def _check_lifestyle(self, desc: str) -> TransactionCategoryD | None:
         """Check for lifestyle patterns (insurance, dining, groceries)."""
         if "INSURANCE" in desc or "PREMIUM" in desc:
-            return TransactionCategory.INSURANCE
+            return TransactionCategoryD.INSURANCE
         if any(x in desc for x in ("STARBUCKS", "CAFE", "RESTAURANT", "UBER EATS", "DOORDASH")):
-            return TransactionCategory.DINING
+            return TransactionCategoryD.DINING
         if any(
             x in desc
             for x in (
@@ -135,10 +135,10 @@ class TransactionCategorizationExtractor(BaseExtractor[list[TransactionD], list[
                 "WHOLE FOODS",
             )
         ):
-            return TransactionCategory.GROCERIES
+            return TransactionCategoryD.GROCERIES
         return None
 
-    def _rules_category(self, txn: TransactionD) -> TransactionCategory | None:
+    def _rules_category(self, txn: TransactionD) -> TransactionCategoryD | None:
         """Apply simple rules to categorize the transaction. Return None if no rule matched."""
         # THIS HELPS REDUCE THE LLMs USAGE AND SPEEDS UP THE PROCESSING
         desc = (txn.transaction_description or "").upper()
@@ -184,16 +184,16 @@ class TransactionCategorizationExtractor(BaseExtractor[list[TransactionD], list[
             return txn
         except Exception as e:
             logging.exception("Failed to categorize transaction %s: %s", txn.transaction_id, e)
-            txn.category = TransactionCategory.ERROR
+            txn.category = TransactionCategoryD.ERROR
             return txn
 
-    def _parse_category_response(self, response_text: str) -> TransactionCategory:
+    def _parse_category_response(self, response_text: str) -> TransactionCategoryD:
         cat_str = (response_text or "").strip().lower()
         try:
-            return TransactionCategory(cat_str)
+            return TransactionCategoryD(cat_str)
         except ValueError:
             logging.warning("Unknown category '%s', defaulting to OTHER", cat_str)
-            return TransactionCategory.OTHER
+            return TransactionCategoryD.OTHER
 
     def _process(self, element: list[TransactionD]) -> list[TransactionD]:
         if not element:
@@ -208,7 +208,7 @@ class TransactionCategorizationExtractor(BaseExtractor[list[TransactionD], list[
             completed += 1
             if out.category is None:
                 logging.warning("Transaction categorization returned None, defaulting to ERROR")
-                out.category = TransactionCategory.ERROR
+                out.category = TransactionCategoryD.ERROR
             logging.info(
                 "[%d/%d] %s → %s",
                 completed,
@@ -241,7 +241,7 @@ class TransactionCategorizationExtractor(BaseExtractor[list[TransactionD], list[
                     transaction_description=element[i].transaction_description,
                     transaction_type=element[i].transaction_type,
                     transaction_id=element[i].transaction_id,
-                    category=TransactionCategory.ERROR,
+                    category=TransactionCategoryD.ERROR,
                 )
                 final_results.append(failed_txn)
             else:
