@@ -86,6 +86,20 @@ Frontend runs at `http://localhost:3000`
 - Liquidity assessment
 - Recurring payment detection
 
+## Application Views
+
+### Documents Dashboard
+![Documents View](docs/doc_view.jpeg)
+*Upload and manage bank statement PDFs with document preview*
+
+### Risk Analysis & Insights
+![Risk Analysis](docs/risk_view.jpeg)
+*Interactive financial visualizations with risk category breakdowns and loan assessments*
+
+### Transaction Details
+![Transactions](docs/transactions.jpeg)
+*Detailed transaction view with categorization and filtering capabilities*
+
 ## Project Structure
 
 ```
