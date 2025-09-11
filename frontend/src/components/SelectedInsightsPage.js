@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Typography, Paper, Table, TableHead, TableRow, TableCell, TableBody, TableContainer, Chip, Tooltip, IconButton, CircularProgress, Card, CardContent, CardHeader, Grid, Stack, LinearProgress, Alert, AlertTitle, Tabs, Tab } from '@mui/material';
-import { GetApp as DownloadIcon, TrendingUp, AccountBalance, Assessment, Warning, CheckCircle, Error, PieChart, AttachMoney, MoneyOff, TrendingDown, Security } from '@mui/icons-material';
+import { Box, Typography, Paper, Table, TableHead, TableRow, TableCell, TableBody, TableContainer, Chip, CircularProgress, Card, CardContent, CardHeader, Grid, Stack, LinearProgress, Alert, AlertTitle, Tabs, Tab } from '@mui/material';
+import { TrendingUp, AccountBalance, Assessment, Warning, CheckCircle, Error, PieChart, AttachMoney, MoneyOff, TrendingDown, Security } from '@mui/icons-material';
 import ApiService from '../services/api';
 
 // Colors and user-friendly names for bucket analysis
@@ -135,28 +135,6 @@ function aggregateMetrics(allInsights) {
   return totals;
 }
 
-function exportCsv(rows) {
-  const header = ['Document ID', 'Statement', 'Transactions', 'Income', 'Expenses', 'Net Cash Flow', 'Risk', 'Buckets', 'Reason'];
-  const lines = [header.join(',')].concat(rows.map(r => [
-    r.documentId,
-    JSON.stringify(r.statementName || ''),
-    r.transactionCount,
-    r.income,
-    r.expenses,
-    r.netCashFlow,
-    r.risk,
-    JSON.stringify((r.buckets || []).join(' | ')),
-    JSON.stringify(r.reason || '')
-  ].join(',')));
-  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'selected-insights.csv';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
 
 const SelectedInsightsPage = ({ selectedIds = [] }) => {
   const [rows, setRows] = useState([]);
@@ -299,13 +277,6 @@ const SelectedInsightsPage = ({ selectedIds = [] }) => {
     <Box sx={{ p: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
         <Typography variant="h5" sx={{ fontWeight: 600, flexGrow: 1 }}>Insights</Typography>
-        <Tooltip title="Export CSV">
-          <span>
-            <IconButton onClick={() => exportCsv(rows)} disabled={rows.length === 0}>
-              <DownloadIcon />
-            </IconButton>
-          </span>
-        </Tooltip>
       </Box>
 
       {!hasSelection && (
