@@ -11,8 +11,6 @@ from storage.document_dao import InMemDAO, NotFound
 class InsightsResource:
     @classmethod
     def get_document_underwriting_insights(cls, document_id: str, dao: InMemDAO) -> dict[str, Any]:
-        """Get underwriting insights for a specific document."""
-
         try:
             document = dao.read(document_id)
         except (NotFound, ValueError) as e:
